@@ -12,6 +12,9 @@ class PostsPagesTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.user = User.objects.create_user(username='auth')
+        cls.guest_client = Client()
+        cls.authorized_client = Client()
+        cls.authorized_client.force_login(cls.user)
         cls.group = Group.objects.create(
             title='Тестовая группа',
             description='Тестовый текст',
@@ -25,30 +28,22 @@ class PostsPagesTests(TestCase):
                 group=cls.group,
             )
 
-    def setUp(self):
-        self.guest_client = Client()
-        self.user_not_author = User.objects.create_user(username='HasNoName')
-        self.authorized_not_author = Client()
-        self.authorized_not_author.force_login(self.user_not_author)
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
-
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
         templates_pages_names = {
             reverse('posts:index'): 'posts/index.html',
             reverse('posts:profile',
-                    kwargs={'username': PostsPagesTests.user}):
+                    kwargs={'username': self.user}):
                         'posts/profile.html',
             reverse('posts:post_detail',
-                    kwargs={'post_id': PostsPagesTests.post.id}):
+                    kwargs={'post_id': self.post.id}):
                         'posts/post_detail.html',
             reverse('posts:group_list',
-                    kwargs={'slug': PostsPagesTests.group.slug}):
+                    kwargs={'slug': self.group.slug}):
                         'posts/group_list.html',
             reverse('posts:post_create'): 'posts/create_post.html',
             reverse('posts:post_edit',
-                    kwargs={'post_id': PostsPagesTests.post.id}):
+                    kwargs={'post_id': self.post.id}):
                         'posts/create_post.html',
         }
         for reverse_name, template in templates_pages_names.items():
@@ -66,23 +61,23 @@ class PostsPagesTests(TestCase):
 
     def test_group_list_first_page_contains_ten_records(self):
         response = self.client.get(reverse(
-            'posts:group_list', kwargs={'slug': PostsPagesTests.group.slug}))
+            'posts:group_list', kwargs={'slug': self.group.slug}))
         self.assertEqual(len(response.context['page_obj']), 10)
 
     def test_group_list_second_page_contains_three_records(self):
         response = self.client.get(reverse(
-            'posts:group_list', kwargs={'slug': PostsPagesTests.group.slug})
+            'posts:group_list', kwargs={'slug': self.group.slug})
             + '?page=2')
         self.assertEqual(len(response.context['page_obj']), 3)
 
     def test_profile_first_page_contains_ten_records(self):
         response = self.client.get(reverse(
-            'posts:profile', kwargs={'username': PostsPagesTests.user}))
+            'posts:profile', kwargs={'username': self.user}))
         self.assertEqual(len(response.context['page_obj']), 10)
 
     def test_profile_second_page_contains_three_records(self):
         response = self.client.get(reverse(
-            'posts:profile', kwargs={'username': PostsPagesTests.user})
+            'posts:profile', kwargs={'username': self.user})
             + '?page=2')
         self.assertEqual(len(response.context['page_obj']), 3)
 
@@ -93,6 +88,6 @@ class PostsPagesTests(TestCase):
         post_text_0 = first_object.text
         post_author_0 = first_object.author
         post_group_0 = first_object.group
-        self.assertEqual(post_text_0, PostsPagesTests.post.text)
-        self.assertEqual(post_author_0, PostsPagesTests.user)
-        self.assertEqual(post_group_0, PostsPagesTests.group)
+        self.assertEqual(post_text_0, self.post.text)
+        self.assertEqual(post_author_0, self.user)
+        self.assertEqual(post_group_0, self.group)
