@@ -5,13 +5,9 @@ from django.conf import settings
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-# Создаем временную папку для медиа-файлов;
-# на момент теста медиа папка будет переопределена
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
 
-# Для сохранения media-файлов в тестах будет использоватьсяgs
-# временная папка TEMP_MEDIA_ROOT, а потом мы ее удалим
 @override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostCreateFormTests(TestCase):
     @classmethod
@@ -35,11 +31,11 @@ class PostCreateFormTests(TestCase):
 
     def test_edit_post(self):
         post_data = {
-            'text': 'Тестовый текст',
+            'text': 'Измененный тестовый текст',
             'group': self.group.id,
             'author': self.user
         }
-        group_posts_count = Post.objects.filter(group=self.group.id).count()
+        group_posts_count = Post.objects.filter(group=self.group).count()
         posts_count = Post.objects.count()
         response = self.authorized_client.post(
             reverse('posts:post_edit', args=(self.post.pk, )),
@@ -47,15 +43,10 @@ class PostCreateFormTests(TestCase):
             follow=True
         )
         self.assertEqual(Post.objects.count(), posts_count)
-        self.assertEqual(Post.objects.filter(group=self.group.id).count(),
+        self.assertEqual(Post.objects.filter(group=self.group).count(),
                          group_posts_count)
-
-        self.assertTrue(Post.objects.filter(
-            id=self.post.pk,
-            text='Тестовый текст',
-            group=self.group.id,
-            author=self.user,
-        ).exists())
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.text, 'Измененный тестовый текст')
         self.assertRedirects(response, reverse('posts:post_detail',
                              args=(self.post.pk, )))
 
@@ -73,3 +64,4 @@ class PostCreateFormTests(TestCase):
         self.assertRedirects(response, reverse('posts:profile',
                              kwargs={'username': 'auth'}))
         self.assertEqual(Post.objects.count(), posts_count + 1)
+
