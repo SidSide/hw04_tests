@@ -87,4 +87,3 @@ class PostsURLTests(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         response = self.authorized_client.get('/unexist/')
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-        
