@@ -11,8 +11,13 @@ class PostsURLTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        # Создадим запись в БД для проверки доступности адреса task/test-slug/
         cls.user = User.objects.create_user(username='auth')
+        cls.guest_client = Client()
+        cls.user_not_author = User.objects.create_user(username='HasNoName')
+        cls.authorized_not_author = Client()
+        cls.authorized_not_author.force_login(cls.user_not_author)
+        cls.authorized_client = Client()
+        cls.authorized_client.force_login(cls.user)
         cls.group = Group.objects.create(
             title='Тестовая группа',
             description='Тестовый текст',
@@ -26,24 +31,30 @@ class PostsURLTests(TestCase):
             id=1
         )
 
-    def setUp(self):
-        self.guest_client = Client()
-        self.user_not_author = User.objects.create_user(username='HasNoName')
-        self.authorized_not_author = Client()
-        self.authorized_not_author.force_login(self.user_not_author)
-        self.authorized_client = Client()
-        self.authorized_client.force_login(self.user)
-
     def test_guest_client_url_exists_at_desired_location(self):
-        """Проверка доступности адресов"""
+        """Проверка доступности общих адресов"""
         common_pages = {
             '/': HTTPStatus.OK.value,
             f'/profile/{self.post.author}/': HTTPStatus.OK.value,
             f'/posts/{self.post.id}/': HTTPStatus.OK.value,
+            '/group/test-slug/': HTTPStatus.OK.value,
         }
         for address, template in common_pages.items():
             with self.subTest(address=address):
                 response = self.guest_client.get(address)
+                self.assertEqual(response.status_code, template)
+
+    def test_auth_client_url_exists_at_desired_location(self):
+        """
+        Проверка доступности адресов для авторизованных пользователей
+        """
+        auth_pages = {
+            '/create/': HTTPStatus.OK.value,
+            f'/posts/{self.post.id}/edit/': HTTPStatus.OK.value,
+        }
+        for address, template in auth_pages.items():
+            with self.subTest(address=address):
+                response = self.authorized_client.get(address)
                 self.assertEqual(response.status_code, template)
 
     def test_urls_uses_correct_template(self):
@@ -76,3 +87,4 @@ class PostsURLTests(TestCase):
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
         response = self.authorized_client.get('/unexist/')
         self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        
