@@ -34,10 +34,13 @@ class PostsURLTests(TestCase):
     def test_guest_client_url_exists_at_desired_location(self):
         """Проверка доступности общих адресов"""
         common_pages = {
+            '/unexist/': HTTPStatus.NOT_FOUND,
             '/': HTTPStatus.OK.value,
             f'/profile/{self.post.author}/': HTTPStatus.OK.value,
             f'/posts/{self.post.id}/': HTTPStatus.OK.value,
             '/group/test-slug/': HTTPStatus.OK.value,
+            '/create/': HTTPStatus.FOUND.value,
+            f'/posts/{self.post.id}/edit/': HTTPStatus.FOUND.value,
         }
         for address, template in common_pages.items():
             with self.subTest(address=address):
@@ -49,6 +52,11 @@ class PostsURLTests(TestCase):
         Проверка доступности адресов для авторизованных пользователей
         """
         auth_pages = {
+            '/unexist/': HTTPStatus.NOT_FOUND,
+            '/': HTTPStatus.OK.value,
+            f'/profile/{self.post.author}/': HTTPStatus.OK.value,
+            f'/posts/{self.post.id}/': HTTPStatus.OK.value,
+            '/group/test-slug/': HTTPStatus.OK.value,
             '/create/': HTTPStatus.OK.value,
             f'/posts/{self.post.id}/edit/': HTTPStatus.OK.value,
         }
@@ -80,10 +88,3 @@ class PostsURLTests(TestCase):
             follow=True
         )
         self.assertRedirects(response, (f'/posts/{self.post.id}/'))
-
-    def test_unexisting_page_exists_at_desired_location(self):
-        """Запрос к несуществующей странице"""
-        response = self.guest_client.get('/unexist/')
-        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
-        response = self.authorized_client.get('/unexist/')
-        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
